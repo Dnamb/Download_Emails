@@ -8,17 +8,12 @@ import dateutil
 from datetime import datetime
 import email.header
 import argparse
+import configparser
 
 def decode_mime_words(s):
     return u''.join(
         word.decode(encoding or 'utf8') if isinstance(word, bytes) else word
         for word, encoding in email.header.decode_header(s))
-
-ORG_EMAIL = "@gmail.com" 
-FROM_EMAIL = "dnambiar.mamba" + ORG_EMAIL 
-FROM_PWD = "otlqyjjccltiarsk" 
-SMTP_SERVER = "imap.gmail.com" 
-SMTP_PORT = 993
 
 def read_email_from_gmail(search_criteria=None):
     subject = []
@@ -49,24 +44,26 @@ def read_email_from_gmail(search_criteria=None):
                         email_subject = decode_mime_words(msg['subject'])
                         email_from = decode_mime_words(msg['from'])
                         email_received = decode_mime_words(msg['Received'].split(";")[1].strip())
-                        email_content = decode_mime_words(msg['Content-Type'])
+                        # email_content = decode_mime_words(msg['Content-Type'])
                         email_received = dateutil.parser.parse(email_received).astimezone()
-                        email_content = msg['Content-Type']
+                        # email_content = msg['Content-Type']
                         subject.append(email_subject)
                         received.append(email_received)
                         from_email.append(email_from)
-                        content.append(email_content)
+                        # content.append(email_content)
                     except Exception:
                         pass
                     # print('From : ' + email_from + '\n')
                     # print('Subject : ' + email_subject + '\n')
                     # print('Received : ' + email_received + '\n')
                     
-        return pd.DataFrame(np.column_stack([received, from_email, subject,content]),columns=['Received Date','From','Email Subject','Message Content'])
+        # return pd.DataFrame(np.column_stack([received, from_email, subject,content]),columns=['Received Date','From','Email Subject','Message Content'])
+        return pd.DataFrame(np.column_stack([received, from_email, subject]),columns=['Received Date','From','Email Subject'])
     except KeyboardInterrupt:
         print('Interrupted')
         try:
-            return pd.DataFrame(np.column_stack([received, from_email, subject,content]),columns=['Received Date','From','Email Subject','Message Content'])
+            # return pd.DataFrame(np.column_stack([received, from_email, subject,content]),columns=['Received Date','From','Email Subject','Message Content'])
+            return pd.DataFrame(np.column_stack([received, from_email, subject]),columns=['Received Date','From','Email Subject'])
             # sys.exit(0)
         except SystemExit:
             # os._exit(0)
@@ -75,15 +72,26 @@ def read_email_from_gmail(search_criteria=None):
         
         traceback.print_exc() 
         print(str(e))
-        return pd.DataFrame(np.column_stack([received, from_email, subject,content]),columns=['Received Date','From','Email Subject','Message Content'])
+        # return pd.DataFrame(np.column_stack([received, from_email, subject,content]),columns=['Received Date','From','Email Subject','Message Content'])
+        return pd.DataFrame(np.column_stack([received, from_email, subject]),columns=['Received Date','From','Email Subject'])
         # pass
 
 if __name__ == "__main__":
     # read_email_from_gmail()
     parser = argparse.ArgumentParser()
+    parser.add_argument("-d", type=str, default="gmail",help="Email to search")
     parser.add_argument("-s",type=str,help="Specify the search criteria. eg. since '14-Sep-2021' before '30-Sep-2021'")
     args = parser.parse_args()
-    search_criteria = args.s                    
+    search_criteria = args.s
+    email_id = args.d.upper()
+    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+    config.read('settings.ini')
+    
+    FROM_EMAIL = config.get(email_id,"FROM_EMAIL")
+    FROM_PWD = config.get(email_id,"FROM_PWD")
+    SMTP_SERVER = config.get(email_id,"SMTP_SERVER")
+    SMTP_PORT = config.get(email_id,"SMTP_PORT")
+
     final = read_email_from_gmail(search_criteria)
     time_now = datetime.now().strftime("%m-%d-%Y %H-%M-%S")
     final.to_csv(f"Output - {time_now}.csv", index=False)
