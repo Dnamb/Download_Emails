@@ -110,6 +110,6 @@ if __name__ == "__main__":
     if folder:
         final = read_email_from_gmail(search_criteria, folder)
         time_now = datetime.now().strftime("%m-%d-%Y %H-%M-%S")
-        final.to_csv(f"Output - {time_now}.csv", index=False)
+        final.to_csv(f"Output - {folder} - {FROM_EMAIL} - {time_now}.csv", index=False)
     else:
         list_folders()
