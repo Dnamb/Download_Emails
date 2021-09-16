@@ -14,16 +14,28 @@ def decode_mime_words(s):
     return u''.join(
         word.decode(encoding or 'utf8') if isinstance(word, bytes) else word
         for word, encoding in email.header.decode_header(s))
+    
+def list_folders():
+    try:
+        print(f"Retreiving folders for {FROM_EMAIL}")
+        mail = imaplib.IMAP4_SSL(SMTP_SERVER)
+        mail.login(FROM_EMAIL,FROM_PWD)
+        for f in mail.list()[1]:
+            print(f)
+    except:
+        raise ConnectionError("Unable to retreive folder list")
 
-def read_email_from_gmail(search_criteria=None):
+def read_email_from_gmail(search_criteria=None, folder=None):
     subject = []
     received = []
     from_email = []
-    content = []
+    folder_cat = []
     try:
         mail = imaplib.IMAP4_SSL(SMTP_SERVER)
         mail.login(FROM_EMAIL,FROM_PWD)
-        mail.select('inbox', readonly=True)
+        if folder == None:
+            folder = 'inbox'
+        mail.select(folder, readonly=True)
 
         if search_criteria:
             search = mail.search(None, f'({search_criteria})')
@@ -50,6 +62,7 @@ def read_email_from_gmail(search_criteria=None):
                         subject.append(email_subject)
                         received.append(email_received)
                         from_email.append(email_from)
+                        folder_cat.append(folder)
                         # content.append(email_content)
                     except Exception:
                         pass
@@ -58,12 +71,12 @@ def read_email_from_gmail(search_criteria=None):
                     # print('Received : ' + email_received + '\n')
                     
         # return pd.DataFrame(np.column_stack([received, from_email, subject,content]),columns=['Received Date','From','Email Subject','Message Content'])
-        return pd.DataFrame(np.column_stack([received, from_email, subject]),columns=['Received Date','From','Email Subject'])
+        return pd.DataFrame(np.column_stack([received, from_email, subject,folder_cat]),columns=['Received Date','From','Email Subject','Folder'])
     except KeyboardInterrupt:
         print('Interrupted')
         try:
             # return pd.DataFrame(np.column_stack([received, from_email, subject,content]),columns=['Received Date','From','Email Subject','Message Content'])
-            return pd.DataFrame(np.column_stack([received, from_email, subject]),columns=['Received Date','From','Email Subject'])
+            return pd.DataFrame(np.column_stack([received, from_email, subject,folder_cat]),columns=['Received Date','From','Email Subject','Folder'])
             # sys.exit(0)
         except SystemExit:
             # os._exit(0)
@@ -73,7 +86,7 @@ def read_email_from_gmail(search_criteria=None):
         traceback.print_exc() 
         print(str(e))
         # return pd.DataFrame(np.column_stack([received, from_email, subject,content]),columns=['Received Date','From','Email Subject','Message Content'])
-        return pd.DataFrame(np.column_stack([received, from_email, subject]),columns=['Received Date','From','Email Subject'])
+        return pd.DataFrame(np.column_stack([received, from_email, subject,folder_cat]),columns=['Received Date','From','Email Subject','Folder'])
         # pass
 
 if __name__ == "__main__":
@@ -81,9 +94,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", type=str, default="gmail",help="Email to search")
     parser.add_argument("-s",type=str,help="Specify the search criteria. eg. since '14-Sep-2021' before '30-Sep-2021'")
+    parser.add_argument("-f",type=str,default=None, help="Email folder to retrive the emails from.")
     args = parser.parse_args()
     search_criteria = args.s
     email_id = args.d.upper()
+    folder = args.f
     config = configparser.ConfigParser()
     config.read('settings.ini')
     
@@ -92,6 +107,9 @@ if __name__ == "__main__":
     SMTP_SERVER = config.get(email_id,"SMTP_SERVER")
     SMTP_PORT = config.get(email_id,"SMTP_PORT")
 
-    final = read_email_from_gmail(search_criteria)
-    time_now = datetime.now().strftime("%m-%d-%Y %H-%M-%S")
-    final.to_csv(f"Output - {time_now}.csv", index=False)
+    if folder:
+        final = read_email_from_gmail(search_criteria, folder)
+        time_now = datetime.now().strftime("%m-%d-%Y %H-%M-%S")
+        final.to_csv(f"Output - {time_now}.csv", index=False)
+    else:
+        list_folders()
