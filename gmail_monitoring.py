@@ -84,7 +84,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     search_criteria = args.s
     email_id = args.d.upper()
-    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
+    config = configparser.ConfigParser()
     config.read('settings.ini')
     
     FROM_EMAIL = config.get(email_id,"FROM_EMAIL")
