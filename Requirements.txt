@@ -1,2 +1,4 @@
 pandas
 imaplib
+numpy
+tqdm
