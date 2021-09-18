@@ -23,7 +23,7 @@ def list_folders():
         for f in mail.list()[1]:
             print(f)
     except:
-        raise ConnectionError("Unable to retreive folder list")
+        raise ConnectionError("Unable to retreive the folder list")
 
 def read_email_from_gmail(search_criteria=None, folder=None):
     subject = []
